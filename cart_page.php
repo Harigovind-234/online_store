@@ -35,6 +35,7 @@ $total = $cart->getTotalAmount($_SESSION['user_id']);
 </head>
 <body>
     <div class="cart-container">
+        <a href="index.php" class="btn btn-dark mb-4">&larr; Back to shop</a>
         <h2 class="mb-4 text-center">Your Cart</h2>
         <?php if(count($items) > 0): ?>
         <div class="card p-4 mb-4">
@@ -52,9 +53,27 @@ $total = $cart->getTotalAmount($_SESSION['user_id']);
                     <tbody>
                         <?php foreach($items as $item): ?>
                         <tr>
-                            <td><?= htmlspecialchars($item['name']) ?></td>
+                            <td><?= htmlspecialchars($item['product_name']) ?></td>
                             <td>₹<?= number_format($item['price'], 2) ?></td>
-                            <td><?= $item['quantity'] ?></td>
+                            
+                            <!-- ✅ Quantity controls (− / + buttons) -->
+                            <td class="text-center">
+                                <form method="post" action="cart_action.php" class="d-inline">
+                                    <input type="hidden" name="product_id" value="<?= $item['product_id'] ?>">
+                                    <input type="hidden" name="action" value="decrease">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">−</button>
+                                </form>
+
+                                <span class="mx-2"><?= $item['quantity'] ?></span>
+
+                                <form method="post" action="cart_action.php" class="d-inline">
+                                    <input type="hidden" name="product_id" value="<?= $item['product_id'] ?>">
+                                    <input type="hidden" name="action" value="increase">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">+</button>
+                                </form>
+                            </td>
+                            <!-- ✅ End Quantity controls -->
+
                             <td>₹<?= number_format($item['price'] * $item['quantity'], 2) ?></td>
                             <td>
                                 <form method="post" action="cart_action.php" style="display:inline;">
@@ -62,7 +81,6 @@ $total = $cart->getTotalAmount($_SESSION['user_id']);
                                     <input type="hidden" name="action" value="remove">
                                     <button type="submit" class="btn btn-danger btn-sm">Remove</button>
                                 </form>
-                                <!-- Debug: product_id for this row: <?= isset($item['product_id']) ? $item['product_id'] : $item['id'] ?> -->
                             </td>
                         </tr>
                         <?php endforeach; ?>

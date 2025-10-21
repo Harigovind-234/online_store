@@ -42,9 +42,15 @@ $products = $productObj->getAllProducts();
                     <li class="nav-item">
                         <a class="nav-link" href="cart_page.php">
                             <i class="fas fa-shopping-cart"></i> Cart
+                            <span class="badge bg-light text-dark ms-1" id="header-cart-count">0</span>
                         </a>
                     </li>
                     <?php if(isset($_SESSION['username'])): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="my_orders.php">
+                                <i class="fas fa-box"></i> Orders
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">
                                 <i class="fas fa-user"></i> <?= htmlspecialchars($_SESSION['username']) ?>
@@ -75,28 +81,67 @@ $products = $productObj->getAllProducts();
     </section>
 
     <!-- Products Section -->
-    <section class="container py-5">
-        <h2 class="text-center mb-4">Our Featured Products</h2>
-        <div class="row g-4">
-            <?php foreach($products as $product): ?>
-            <div class="col-md-4 col-lg-3">
-                <div class="card product-card">
-                    <img src="<?= htmlspecialchars($product['image']) ?>" 
-                         class="card-img-top" 
-                         alt="<?= htmlspecialchars($product['name']) ?>">
-                    <div class="card-body">
-                        <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
-                        <p class="card-text"><?= htmlspecialchars($product['description']) ?></p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="product-price">₹<?= number_format($product['price'], 2) ?></span>
-                            <button class="btn btn-primary btn-sm add-to-cart" data-id="<?= $product['id'] ?>">
-                                <i class="fas fa-cart-plus"></i> Add to Cart
-                            </button>
+    <section class="featured-products">
+        <div class="container">
+            <h2 class="text-center">Our Featured Products</h2>
+            <div class="row g-4">
+                <?php foreach($products as $product): ?>
+                <div class="col-md-6 col-lg-4 col-xl-3 product-col">
+                    <div class="card product-card">
+                        <img src="<?= htmlspecialchars($product['image']) ?>" 
+                             class="card-img-top" 
+                             alt="<?= htmlspecialchars($product['name']) ?>">
+                        <div class="card-body">
+                            <h5 class="card-title"><?= htmlspecialchars($product['name']) ?></h5>
+                            <p class="card-text"><?= htmlspecialchars($product['description']) ?></p>
+                            <div class="product-footer">
+                                <div class="product-price-section">
+                                    <span class="product-price">₹<?= number_format($product['price'], 2) ?></span>
+                                </div>
+                                <div class="product-button-section">
+                                    <button class="btn add-to-cart" data-id="<?= $product['id'] ?>">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <!-- Cart Section -->
+    <section class="cart-section">
+        <div class="container">
+            <div class="cart-container">
+                <h2 class="cart-title">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Ready to Brew?
+                </h2>
+                <p class="cart-subtitle">
+                    Your perfect coffee experience is just a click away. View your cart and complete your order to start enjoying premium coffee at home.
+                </p>
+                <a href="cart_page.php" class="cart-button">
+                    <i class="fas fa-shopping-bag"></i>
+                    View My Cart
+                </a>
+                <div class="cart-stats">
+                    <div class="cart-stat">
+                        <span class="cart-stat-number" id="cart-items-count">0</span>
+                        <span class="cart-stat-label">Items in Cart</span>
+                    </div>
+                    <div class="cart-stat">
+                        <span class="cart-stat-number">24/7</span>
+                        <span class="cart-stat-label">Support</span>
+                    </div>
+                    <div class="cart-stat">
+                        <span class="cart-stat-number">Free</span>
+                        <span class="cart-stat-label">Delivery</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -120,6 +165,28 @@ $products = $productObj->getAllProducts();
     
     <script>
     $(document).ready(function() {
+        // Function to update cart count
+        function updateCartCount() {
+            $.get("get_cart_count.php", function(data) {
+                const count = data.count || 0;
+                $("#cart-items-count").text(count);
+                $("#header-cart-count").text(count);
+                
+                // Hide badge if count is 0
+                if (count === 0) {
+                    $("#header-cart-count").hide();
+                } else {
+                    $("#header-cart-count").show();
+                }
+            }, "json").fail(function() {
+                $("#cart-items-count").text("0");
+                $("#header-cart-count").text("0").hide();
+            });
+        }
+        
+        // Load cart count on page load
+        updateCartCount();
+        
         $(".add-to-cart").click(function(){
             var button = $(this);
             var product_id = button.data("id");
@@ -145,6 +212,11 @@ $products = $productObj->getAllProducts();
                 
                 // Add new alert
                 $('body').append(alertHtml);
+                
+                // Update cart count if item was added successfully
+                if (res.success) {
+                    updateCartCount();
+                }
                 
                 // Enable button
                 button.prop('disabled', false);

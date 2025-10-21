@@ -6,29 +6,57 @@ class User {
         $this->db = $db;
     }
 
-    // Login function
-    public function login($username, $password){
-        // Prepare statement to avoid SQL injection
-        $stmt = $this->db->conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
+    // Check if username or email is already taken
+    public function isAvailable($username, $email){
+        $stmt = $this->db->conn->prepare("SELECT id FROM users WHERE username=? OR email=?");
+        $stmt->bind_param("ss", $username, $email);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-
-        // Check if user exists and verify password
-        if($user && password_verify($password, $user['password'])){
-            return $user; // Success: return user data
-        }
-
-        return false; // Fail
+        $stmt->store_result();
+        return $stmt->num_rows === 0; // true if available
     }
 
-    // Optional: Register function with automatic hashing
-    public function register($username, $password){
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $this->db->conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-        $stmt->bind_param("ss", $username, $hashedPassword);
+    // Register a new user
+    public function register($username, $password, $email, $phone = null){
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $this->db->conn->prepare("INSERT INTO users (username, password, email, phone, is_approved, created_at) VALUES (?,?,?,?,0,NOW())");
+        $stmt->bind_param("ssss", $username, $hashed, $email, $phone);
+        return $stmt->execute();
+    }
+
+    // Optional: login method
+    public function login($username, $password){
+        $stmt = $this->db->conn->prepare("SELECT id, password, is_approved FROM users WHERE username=?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if($res->num_rows === 1){
+            $user = $res->fetch_assoc();
+            if(password_verify($password, $user['password'])){
+                if($user['is_approved'] == 1){
+                    return $user;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Fetch all users (for admin panel)
+    public function getAllUsers(){
+        $result = $this->db->conn->query("SELECT * FROM users ORDER BY created_at DESC");
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
+
+    // Approve a user
+    public function approve($id){
+        $stmt = $this->db->conn->prepare("UPDATE users SET is_approved=1 WHERE id=?");
+        $stmt->bind_param("i",$id);
+        return $stmt->execute();
+    }
+
+    // Reject (delete) a user
+    public function reject($id){
+        $stmt = $this->db->conn->prepare("DELETE FROM users WHERE id=?");
+        $stmt->bind_param("i",$id);
         return $stmt->execute();
     }
 }
-?>
